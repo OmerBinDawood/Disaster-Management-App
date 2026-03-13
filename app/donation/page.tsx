@@ -1,7 +1,44 @@
-import React from 'react';
+"use client";
+import React, { useState } from 'react';
 import PageShell from '../components/PageShell';
 
 export default function DonatePage() {
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleDonate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAmount) {
+      setMessage('Please select an amount.');
+      return;
+    }
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: selectedAmount,
+          currency: 'usd',
+          type: 'one-time',
+          email,
+        }),
+      });
+      if (!res.ok) {
+        setMessage('There was a problem processing your donation. Please try again.');
+        return;
+      }
+      setMessage('Thank you! Your donation has been recorded.');
+    } catch {
+      setMessage('There was a problem processing your donation. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <PageShell>
       {/* Hero Section */}
@@ -52,19 +89,29 @@ export default function DonatePage() {
                 {[25, 50, 100, 250, 500, 1000].map((amount) => (
                   <button
                     key={amount}
-                    className="p-4 text-center font-medium bg-white border-2 border-blue-100 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all focus:bg-blue-600 focus:text-white focus:border-blue-600"
+                    type="button"
+                    onClick={() => setSelectedAmount(amount)}
+                    className={`p-4 text-center font-medium rounded-lg transition-all border-2 ${
+                      selectedAmount === amount
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white border-blue-100 hover:bg-blue-50 hover:border-blue-300'
+                    }`}
                   >
                     ${amount}
                   </button>
                 ))}
-                <button className="col-span-3 p-4 text-center font-medium bg-white border-2 border-blue-100 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAmount(0)}
+                  className="col-span-3 p-4 text-center font-medium bg-white border-2 border-blue-100 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all"
+                >
                   Custom Amount
                 </button>
               </div>
             </div>
 
             {/* Payment Form */}
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleDonate}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input 
@@ -72,6 +119,8 @@ export default function DonatePage() {
                   id="email"
                   placeholder="Your email address"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -124,14 +173,20 @@ export default function DonatePage() {
 
               <button 
                 type="submit"
-                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors text-lg shadow-md hover:shadow-lg"
+                disabled={submitting}
+                className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold rounded-lg transition-colors text-lg shadow-md hover:shadow-lg"
               >
-                Donate Now
+                {submitting ? 'Processing…' : 'Donate Now'}
               </button>
 
               <p className="text-xs text-gray-500 text-center">
                 Your donation is secure and tax-deductible. <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
               </p>
+              {message && (
+                <p className="mt-2 text-center text-sm text-gray-700">
+                  {message}
+                </p>
+              )}
             </form>
           </div>
 

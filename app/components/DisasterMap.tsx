@@ -166,7 +166,7 @@ export default function DisasterMap() {
 
       marker.on('move', function (e) {
         if (tooltip.style.opacity === '1') {
-          const markerPoint = map.latLngToContainerPoint(e.latlng)
+          const markerPoint = map.latLngToContainerPoint((e as any).latlng)
           positionTooltip(markerPoint, tooltip)
         }
       })

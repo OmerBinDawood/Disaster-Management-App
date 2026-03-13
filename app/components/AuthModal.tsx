@@ -23,6 +23,14 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
   const [cities, setCities] = useState<string[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedCity, setSelectedCity] = useState('')
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [signupName, setSignupName] = useState('')
+  const [signupEmail, setSignupEmail] = useState('')
+  const [signupPassword, setSignupPassword] = useState('')
+  const [signupPhone, setSignupPhone] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const country = e.target.value
@@ -37,6 +45,59 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCity(e.target.value)
+  }
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Login failed. Please check your credentials.')
+        return
+      }
+      onClose()
+      // Refresh to pick up new auth cookie
+      window.location.reload()
+    } catch {
+      setError('Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: signupName,
+          email: signupEmail,
+          password: signupPassword,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Sign up failed. Please try again.')
+        return
+      }
+      onClose()
+      window.location.reload()
+    } catch {
+      setError('Sign up failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (!isOpen) return null
@@ -58,7 +119,7 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
             </h2>
 
             <div className={`auth-forms ${mode === 'login' ? 'block' : 'hidden'}`}>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleLoginSubmit}>
                 <div>
                   <label htmlFor="login-email" className="block mb-1">Email</label>
                   <input 
@@ -66,6 +127,8 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                     id="login-email" 
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="your@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -76,14 +139,17 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                     id="login-password" 
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                     required
                   />
                 </div>
                 <button 
                   type="submit"
-                  className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                  disabled={loading}
+                  className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 disabled:bg-orange-300 transition-colors"
                 >
-                  Login
+                  {loading ? 'Logging in…' : 'Login'}
                 </button>
               </form>
 
@@ -114,7 +180,7 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
             </div>
 
             <div className={`auth-forms ${mode === 'signup' ? 'block' : 'hidden'}`}>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSignupSubmit}>
                 <div>
                   <label htmlFor="signup-name" className="block mb-1">Full Name</label>
                   <input 
@@ -122,6 +188,8 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                     id="signup-name" 
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="John Doe"
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
                     required
                   />
                 </div>
@@ -132,6 +200,8 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                     id="signup-email" 
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="your@email.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -142,6 +212,8 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                     id="signup-password" 
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="••••••••"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
                     required
                   />
                 </div>
@@ -152,6 +224,8 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                     id="signup-phone" 
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="+1234567890"
+                    value={signupPhone}
+                    onChange={(e) => setSignupPhone(e.target.value)}
                     required
                   />
                 </div>
@@ -192,9 +266,10 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                 </div>
                 <button 
                   type="submit"
-                  className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                  disabled={loading}
+                  className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 disabled:bg-orange-300 transition-colors"
                 >
-                  Sign Up
+                  {loading ? 'Creating account…' : 'Sign Up'}
                 </button>
               </form>
 
@@ -223,6 +298,11 @@ export default function AuthModal({ isOpen, onClose, mode, setMode }: AuthModalP
                 </button>
               </p>
             </div>
+            {error && (
+              <p className="mt-4 text-center text-sm text-red-600">
+                {error}
+              </p>
+            )}
           </div>
         </div>
       </div>
