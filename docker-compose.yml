@@ -1,0 +1,22 @@
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/disasterApp
+      - MONGODB_DB=disasterApp
+      - JWT_SECRET=dev_secret_key
+
+volumes:
+  mongo-data:
