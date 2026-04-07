@@ -1,6 +1,6 @@
 # CompassionConnect – Disaster Management App
 
-Jenkins CI test trigger 123
+Jenkins CI test trigger 2nd time after env
 
 Next.js app for disaster response coordination with:
 
