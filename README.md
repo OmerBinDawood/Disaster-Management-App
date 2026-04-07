@@ -1,5 +1,7 @@
 # CompassionConnect – Disaster Management App
 
+Jenkins CI test trigger 123
+
 Next.js app for disaster response coordination with:
 
 - Live disaster map (Leaflet)
