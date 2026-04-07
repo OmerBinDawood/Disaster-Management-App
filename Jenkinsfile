@@ -3,30 +3,28 @@ pipeline {
 
     stages {
 
-        stage('Clone Repo') {
+        stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/YOUR_USERNAME/YOUR_REPO.git'
+                git branch: 'main', url: 'https://github.com/OmerBinDawood/Disaster-Management-App'
             }
         }
 
         stage('Stop Old Containers') {
             steps {
-                sh 'docker compose -f docker-compose.jenkins.yml down || true'
+                sh 'docker-compose -f docker-compose.jenkins.yml down || true'
             }
         }
 
-        stage('Build & Run Containers') {
+        stage('Build & Run CI Containers') {
             steps {
-                sh 'docker compose -f docker-compose.jenkins.yml up -d --build'
+                sh 'docker-compose -f docker-compose.jenkins.yml up -d --build'
             }
         }
 
-    }
-
-    post {
-        always {
-            echo "CI/CD pipeline executed successfully"
+        stage('Verify') {
+            steps {
+                sh 'docker ps'
+            }
         }
     }
 }
