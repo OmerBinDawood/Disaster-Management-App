@@ -11,13 +11,13 @@ pipeline {
 
         stage('Stop Old Containers') {
             steps {
-                sh 'docker-compose -f docker-compose.jenkins.yml down || true'
+                sh 'docker compose -f docker-compose.jenkins.yml down || true'
             }
         }
 
         stage('Build & Run CI Containers') {
             steps {
-                sh 'docker-compose -f docker-compose.jenkins.yml up -d --build'
+                sh 'docker compose -f docker-compose.jenkins.yml up -d --build'
             }
         }
 
