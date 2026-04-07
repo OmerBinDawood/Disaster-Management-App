@@ -12,8 +12,9 @@ services:
       - "3001:3000"
     command: sh -c "npm install && npm run dev"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/disasterApp
-      - JWT_SECRET=dev_secret_key
+      - MONGODB_URI=MONGODB_URI=mongodb://mongo:27017/disasterApp
+      - MONGODB_DB=disasterApp
+      - JWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiT21lciIsImlhdCI6MTY5OTk5OTk5OX0.Dx8N7QwXzF1H9yT2rF3k7gM5JvE1uL4Kp9s2yA1B6C0
     depends_on:
       - mongo
 
