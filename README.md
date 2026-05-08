@@ -16,7 +16,7 @@ Next.js app for disaster response coordination with:
 
 ## Setup (after cloning)
 
-1. Install dependencies
+1. Install dependencies and hello
 
 ```bash
 npm install
