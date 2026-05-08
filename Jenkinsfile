@@ -4,7 +4,7 @@ pipeline {
     environment {
         APP_IMAGE = "disaster-app"
         TEST_IMAGE = "disaster-tests"
-        APP_CONTAINER = "app_container"
+        DEFAULT_EMAIL = "recipient@domain.com"
     }
 
     stages {
@@ -16,13 +16,9 @@ pipeline {
             }
         }
 
-        stage('Cleanup Old Containers') {
+        stage('Stop Old Containers') {
             steps {
-                sh '''
-                    docker stop $APP_CONTAINER || true
-                    docker rm $APP_CONTAINER || true
-                    docker compose down || true
-                '''
+                sh 'docker compose down || true'
             }
         }
 
@@ -32,58 +28,55 @@ pipeline {
             }
         }
 
-        stage('Run App Container') {
+        stage('Start App Container') {
             steps {
-                sh '''
-                    docker run -d \
-                    -p 3000:3000 \
-                    --name $APP_CONTAINER \
-                    $APP_IMAGE
-                '''
+                sh 'docker run -d -p 3000:3000 --name app_container $APP_IMAGE'
             }
         }
 
         stage('Clone Test Repo') {
             steps {
-                sh '''
-                    rm -rf tests || true
-                    git clone https://github.com/OmerBinDawood/disaster-management-tests tests
-                '''
+                sh 'rm -rf tests || true'
+                sh 'git clone https://github.com/OmerBinDawood/disaster-management-tests tests'
             }
         }
 
         stage('Build Test Image') {
             steps {
-                sh 'docker build -t $TEST_IMAGE ./tests'
+                sh 'cd tests && docker build -t $TEST_IMAGE .'
             }
         }
 
         stage('Run Selenium Tests') {
             steps {
-                sh '''
-                    docker run --rm \
-                    --network host \
-                    $TEST_IMAGE
-                '''
+                sh "docker run --rm --network host $TEST_IMAGE"
             }
         }
     }
 
     post {
-
         always {
             script {
-                sh '''
-                    docker stop $APP_CONTAINER || true
-                    docker rm $APP_CONTAINER || true
-                '''
-            }
 
-            emailext(
-                to: 'recipient@domain.com',
-                subject: "CI/CD Pipeline Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                mimeType: 'text/plain',
-                body: """\
+                // cleanup container
+                sh 'docker stop app_container || true'
+                sh 'docker rm app_container || true'
+
+                // ----------------------------
+                // FIX: dynamic email handling
+                // ----------------------------
+
+                def commitEmail = sh(
+                    script: "git log -1 --pretty=format:%ae || echo ''",
+                    returnStdout: true
+                ).trim()
+
+                def authorEmail = commitEmail ? commitEmail : env.DEFAULT_EMAIL
+
+                emailext(
+                    to: authorEmail,
+                    subject: "CI/CD Pipeline Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                    body: """
 ========================================
 DISASTER MANAGEMENT PIPELINE RESULT
 ========================================
@@ -92,15 +85,14 @@ Build Number : ${env.BUILD_NUMBER}
 Status       : ${currentBuild.currentResult}
 Job URL      : ${env.BUILD_URL}
 
-App Image    : ${APP_IMAGE}
-Test Image   : ${TEST_IMAGE}
+Repo         : Disaster Management App
+Branch       : main
 
 ========================================
 """,
-                attachLog: true,
-                compressLog: true,
-                replyTo: 'noreply@jenkins-ci.local'
-            )
+                    attachLog: true
+                )
+            }
         }
     }
 }
