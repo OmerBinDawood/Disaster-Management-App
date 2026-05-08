@@ -1,89 +1,56 @@
-which jenkins file to do this webapp or tests:
-
-Update Jenkins pipeline logic
-
-Your Jenkinsfile MUST:
-
-1. Pull web app repo
-git clone Disaster-Management-App
-2. Build Docker image
-docker build -t app .
-3. Start container (IMPORTANT)
-docker-compose up -d
-
-OR:
-
-docker run -d -p 3000:3000 app
-4. Pull test repo inside pipeline
-git clone disaster-management-tests
-5. Run Selenium tests (containerized)
-
-Either:
-
-Maven + Chrome image
-OR
-your custom Docker image
-
-Example:
-
-docker run --network host test-image
-
-
 pipeline {
     agent any
 
+    environment {
+        APP_IMAGE = "disaster-app"
+        TEST_IMAGE = "disaster-tests"
+    }
+
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout Web App') {
             steps {
-                git branch: 'main', url: 'https://github.com/OmerBinDawood/Disaster-Management-App'
+                git branch: 'main',
+                url: 'https://github.com/OmerBinDawood/Disaster-Management-App'
             }
         }
 
         stage('Stop Old Containers') {
             steps {
-                sh 'docker compose -f docker-compose.jenkins.yml down || true'
+                sh 'docker compose down || true'
             }
         }
 
-        stage('Build & Run CI Containers') {
+        stage('Build App Image') {
             steps {
-                sh 'docker compose -f docker-compose.jenkins.yml up -d --build'
+                sh 'docker build -t $APP_IMAGE .'
             }
         }
 
-        stage('Verify') {
+        stage('Start App Container') {
             steps {
-                sh 'docker ps'
-            }
-        }
-    }
-}
-
-
-
-
-
-pipeline {
-    agent any
-
-    stages {
-
-        stage('Checkout Code') {
-            steps {
-                checkout scm
+                sh 'docker run -d -p 3000:3000 --name app_container $APP_IMAGE'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Clone Test Repo') {
             steps {
-                sh 'docker build -t disaster-tests .'
+                sh 'rm -rf tests || true'
+                sh 'git clone https://github.com/OmerBinDawood/disaster-management-tests tests'
             }
         }
 
-        stage('Run Tests in Docker') {
+        stage('Build Test Image') {
             steps {
-                sh 'docker run --rm disaster-tests'
+                sh 'cd tests && docker build -t $TEST_IMAGE .'
+            }
+        }
+
+        stage('Run Selenium Tests') {
+            steps {
+                sh """
+                docker run --rm --network host $TEST_IMAGE
+                """
             }
         }
     }
@@ -91,44 +58,20 @@ pipeline {
     post {
         always {
             script {
-
-                // safer fallback approach for email
-                def email = "qasim.malik@gmail.com"
-
-                try {
-                    email = sh(
-                        script: "git log -1 --pretty=format:%ae",
-                        returnStdout: true
-                    ).trim()
-                } catch (Exception e) {
-                    echo "Could not extract git email, using fallback"
-                }
-
-                echo "Sending email to: ${email}"
-
-                emailext (
-                    to: email,
-                    subject: "Jenkins CI Results - Disaster Tests #${env.BUILD_NUMBER}",
-                    body: """
-Hello,
-
-Pipeline has completed.
-
-Project: Disaster Management Tests
-Build Number: ${env.BUILD_NUMBER}
-Build Status: ${currentBuild.currentResult}
-
-View details: ${env.BUILD_URL}
-
-Regards,
-Jenkins CI Pipeline
-""",
-                    attachLog: true,
-                    mimeType: 'text/plain'
-                )
+                sh 'docker stop app_container || true'
+                sh 'docker rm app_container || true'
             }
 
-            echo "Pipeline finished"
+            emailext (
+                to: 'recipient@domain.com',
+                subject: "CI Results - Build #${env.BUILD_NUMBER}",
+                body: """
+Build: ${env.BUILD_NUMBER}
+Status: ${currentBuild.currentResult}
+URL: ${env.BUILD_URL}
+                """,
+                attachLog: true
+            )
         }
     }
 }
